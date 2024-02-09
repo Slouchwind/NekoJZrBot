@@ -1,0 +1,9 @@
+start - 你好喵
+help - 帮助喵
+sign - 签到~
+poke - 戳戳
+moe - 喵喵喵~~
+jseq - JavaScript表达式喵
+ba - 碧蓝档案查询
+r - 动作喵
+id - 抓id喵

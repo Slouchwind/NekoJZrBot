@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "axios": "^1.6.7",
+    "dayjs": "^1.11.10",
+    "grammy": "^1.20.3",
+    "socks-proxy-agent": "^8.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16"
+  },
+  "scripts": {
+    "start": "tsc && node ./dist/bot.js",
+    "build": "tsc",
+    "test": "tsc && node ./dist/test.js",
+    "cmd": "tsc && node ./dist/cmd.js"
+  }
+}
