@@ -10,6 +10,8 @@ const commands: { [key: string]: [string, string] } = {
     ba: ['碧蓝档案查询', '格式 `/ba method:type[:opt] <arg>`\n    例如 `/ba get:students Name 御坂美琴`'],
     r: ['动作喵', '对群友的动作喵，用回复指定喵\\~'],
     id: ['抓id喵', '抓id喵'],
+    admin: ['喵，抓管理员', '把管理员列表抓出来喵'],
+    sticker: ['qwq', '表情包喵\\~'],
 }
 
 export default function displayCommandsHelp(set: boolean = false): string {

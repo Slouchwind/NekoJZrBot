@@ -1,19 +1,31 @@
+//System
 import path from 'path';
 import fs from 'fs';
-import { Bot, Context, GrammyError, HttpError } from 'grammy';
-import { SocksProxyAgent } from "socks-proxy-agent";
-import dayjs, { Dayjs } from 'dayjs';
+//grammY
+import { Bot, CommandContext, Context, GrammyError, HttpError } from 'grammy';
+import { ChatMemberAdministrator, ChatMemberOwner, ParseMode, User } from 'grammy/types';
+//components
 import BlueArchive, { StudentInfo, VoiceData, VoiceInfo, studentImageType, supportLang, voiceDataKey } from './components/BlueArchive';
 import { formatObject } from './components/ObjectExtra';
 import displayCommandsHelp from './components/Help';
-import { ChatMemberAdministrator, ChatMemberOwner, ParseMode, User } from 'grammy/types';
+//package
+import { SocksProxyAgent } from "socks-proxy-agent";
+import dayjs, { Dayjs } from 'dayjs';
+import chalk, { Chalk } from 'chalk';
+
+//Bot config
 
 const BOT_DEVELOPER_ID: number = 6894482393;
 const botShortName: string = 'NekoJZr';
 const botToken: string = fs.readFileSync(path.join(__dirname, '../..', botShortName + '_token.txt')).toString();
 
-console.log = ((log: typeof console.log) =>
-    ((...args: any[]) => log('[' + dayjs().format('HH:mm:ss') + ']', ...args)))(console.log);
+const logWithDay = (log: typeof console.log, color: Chalk = chalk.white) =>
+((...args: any[]) => {
+    log('[' + dayjs().format('HH:mm:ss') + ']', ...args.map(v => typeof v === 'string' ? color(v) : v));
+});
+console.log = logWithDay(console.log);
+console.warn = logWithDay(console.warn, chalk.yellow);
+console.error = logWithDay(console.error, chalk.red);
 
 interface BotExpand {
     rc: (
@@ -65,13 +77,25 @@ bot.catch((err) => {
     }
 });
 
-bot.command('start', ctx => ctx.reply('Moe!'));
+const Command = (
+    cmd: string,
+    fn: (ctx: CommandContext<ContextWithConfig>, log: typeof console.log) => void
+) => {
+    bot.command(cmd, ctx => fn(
+        ctx,
+        (log => (...args: any[]) => log('bot.command.' + cmd, ...args))(console.log)
+    ));
+}
 
-bot.command('help', ctx => {
+//Bot code
+
+Command('start', ctx => ctx.reply('Moe!'));
+
+Command('help', ctx => {
     ctx.reply(displayCommandsHelp(), { parse_mode: 'MarkdownV2' });
 });
 
-bot.command('jseq', ctx => {
+Command('jseq', ctx => {
     if (ctx.message === undefined) return;
     let eq: string = ctx.match;
     if (eq.trim() === '') {
@@ -94,7 +118,7 @@ bot.command('jseq', ctx => {
 
 type SignData = [Date, number];
 const signJsonPath = path.join(__dirname, '../data/sign.json');
-bot.command('sign', ctx => {
+Command('sign', (ctx, log) => {
     if (ctx.message === undefined) return;
     let nowDayjs = dayjs();
     let localData: { [id: string]: SignData } = JSON.parse(fs.readFileSync(signJsonPath).toString());
@@ -118,7 +142,7 @@ bot.command('sign', ctx => {
         }
     }
     ctx.reply(replyText, ctx.rc());
-    console.log('Solve a sign command');
+    log('Solve a sign command');
     fs.writeFileSync(signJsonPath, JSON.stringify(localData, undefined, 4));
 });
 
@@ -133,22 +157,22 @@ let pokeReply = [
     'Moe ww~',
     'iyada'
 ];
-bot.command('poke', ctx => {
+Command('poke', ctx => {
     let randomIndex: number = Math.round(Math.random() * (pokeReply.length - 1));
     ctx.reply(pokeReply[randomIndex]);
 });
 
-bot.command('moe', ctx => {
+Command('moe', ctx => {
     let randomInt: number = Math.round(Math.random() * 20);
     ctx.reply('喵'.repeat(randomInt));
-})
+});
 
 let ba = new BlueArchive();
 let displayKey: (keyof StudentInfo)[] = [
     'Id', 'Name', 'School', 'Club',
     'CharacterAge', 'Birthday', 'CharHeightMetric'
 ];
-bot.command('ba', async (ctx) => {
+Command('ba', async (ctx, log) => {
     if (ctx.message === undefined) return;
     let replyText: string = '';
     let [query, ...args] = ctx.match.split(' ');
@@ -258,10 +282,10 @@ bot.command('ba', async (ctx) => {
         } else replyText = `QueryMethodError: No ${method} method`;
     }
     if (replyText !== '') ctx.reply(replyText, ctx.rc());
-    console.log('Solve a ba command:', query);
+    log('Solve a ba command:', query);
 });
 
-bot.command('r', ctx => {
+Command('r', (ctx, log) => {
     if (ctx.message === undefined) return;
     let getFullName = (u: User) => u.first_name + (u.last_name ? (' ' + u.last_name) : '');
     let fromUsr = ctx.from;
@@ -274,10 +298,10 @@ bot.command('r', ctx => {
     ctx.reply(`${fromName} ${react}了 ${toName}`, {
         reply_parameters: { message_id: replyMsg === undefined ? ctx.message.message_id : replyMsg.message_id }
     });
-    console.log('Solve a r command');
+    log('Solve a r command');
 });
 
-bot.command('id', (ctx) => {
+Command('id', ctx => {
     let idInfos = {
         'Me': ctx.me.id,
         'You': ctx.from?.id,
@@ -288,7 +312,7 @@ bot.command('id', (ctx) => {
     ctx.reply(formatObject(idInfos, '$k: $v', (_, v) => v !== undefined));
 });
 
-bot.command('admin', async (ctx) => {
+Command('admin', async (ctx) => {
     let admins = await ctx.getChatAdministrators();
     ctx.reply(formatObject<number, ChatMemberOwner | ChatMemberAdministrator>(
         admins,
@@ -297,7 +321,7 @@ bot.command('admin', async (ctx) => {
 });
 
 let parseModes: ParseMode[] = ['HTML', 'Markdown', 'MarkdownV2'];
-bot.command('echo', ctx => {
+Command('echo', ctx => {
     if (!ctx.config.isBotDeveloper) return;
     let [mode, ...texts] = ctx.match.split(' ');
     if (!(parseModes as string[]).includes(mode)) ctx.reply('Only ' + parseModes.join(', ') + 'mode');
@@ -306,6 +330,17 @@ bot.command('echo', ctx => {
     });
 });
 
+Command('sticker', ctx => {
+    let stickersFileId = fs.readFileSync(path.join(__dirname, '../data/stickers/white.txt'))
+        .toString()
+        .split('\n')
+        .filter(v => v !== undefined)
+        .map(v => v.endsWith('\r') ? v.replace('\r', '') : v);
+    let randomIndex: number = Math.round(Math.random() * (pokeReply.length - 1));
+    ctx.replyWithSticker(stickersFileId[randomIndex]);
+});
+
+const cachePath = path.join(__dirname, '../data/cache.txt');
 bot.on('message', ctx => {
     let msg = ctx.message.text;
     let file_id = '';
@@ -314,6 +349,10 @@ bot.on('message', ctx => {
     let msgInfos = ['From:', ctx.from.username, 'Id:', ctx.from.id, 'Msg Id:', ctx.message.message_id];
     msg && console.log('Get message:', msg, '|', ...msgInfos);
     file_id && console.log('Get file:', file_id, '|', ...msgInfos);
+    // if (ctx.config.isBotDeveloper && file_id) {
+    //     let bcache = fs.readFileSync(cachePath).toString();
+    //     fs.writeFileSync(cachePath, bcache + file_id + '\n');
+    // }
 });
 
 console.log('Bot:', botShortName, 'start');

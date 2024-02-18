@@ -7,3 +7,5 @@ jseq - JavaScript表达式喵
 ba - 碧蓝档案查询
 r - 动作喵
 id - 抓id喵
+admin - 喵，抓管理员
+sticker - qwq
